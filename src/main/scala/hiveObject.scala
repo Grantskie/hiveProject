@@ -21,6 +21,16 @@ object hiveObject {
     spark.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountC.txt' INTO TABLE bev_conscountc")
   }
 
+  def dropTables(spark:SparkSession){
+    spark.sql("DROP TABLE bev_brancha")
+    spark.sql("DROP TABLE bev_branchb")
+    spark.sql("DROP TABLE bev_branchc")
+    spark.sql("DROP TABLE bev_branchd")
+    spark.sql("DROP TABLE bev_conscounta")
+    spark.sql("DROP TABLE bev_conscountb")
+    spark.sql("DROP TABLE bev_conscountc")
+  }
+
   def userInputCheck(input:String): Int ={
     var retInt : Int = 0
     var tryInt : Boolean = false
@@ -32,6 +42,30 @@ object hiveObject {
     else retInt = 2                    //correct input
 
     return retInt
+  }
+
+  def problemScenarioOne(spark:SparkSession){
+    var userInput : String = ""
+    do{
+      Aesthetics.printHeader("Total # of consumers in branch1")
+      spark.sql("SELECT SUM(conscount.a) FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = \'Branch1\'").show
+      Aesthetics.printHeader("Total # of consumers in branch2")
+      spark.sql(raw"SELECT SUM(conscount.a) FROM (SELECT * FROM bev_brancha UNION ALL SELECT * FROM bev_branchc) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2'").show
+      Aesthetics.printHeader("< to go back")
+      userInput = readLine(">Input<")
+    }while(userInput != "<")
+  }
+
+  def problemScenarioTwo(spark:SparkSession){
+    var userInput:String = ""
+    do{
+      Aesthetics.printHeader("Most consumed beverage on Branch1")
+      spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1' GROUP BY conscount.t ORDER BY MaxTotal desc LIMIT 1").show
+      Aesthetics.printHeader("Least consumed beverage on Branch2")
+      spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM (SELECT * FROM bev_brancha UNION ALL SELECT * FROM bev_branchc) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2' GROUP BY conscount.t ORDER BY MaxTotal asc LIMIT 1").show
+      Aesthetics.printHeader("< to go back")
+      userInput = readLine(">Input<")
+    }while(userInput != "<")
   }
 
   def main(args: Array[String]): Unit = {
@@ -48,7 +82,8 @@ object hiveObject {
     spark.sparkContext.setLogLevel("WARN")
     println("created spark session")
     println("Generating tables")
-    generateTables(spark)
+    //generateTables(spark)
+    //dropTables(spark)
     println("Tables Successfully Generated")
     var userInput: String = null
     do{
@@ -62,8 +97,8 @@ object hiveObject {
       val test = userInputCheck(userInput)
       if(test == 2) {
         userInput.toInt match {
-          case 1 => "zero"
-          case 2 => "one"
+          case 1 => problemScenarioOne(spark)
+          case 2 => problemScenarioTwo(spark)
           case 3 => "two"
           case 4 => "a"
           case 5 => "a"
