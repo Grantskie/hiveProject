@@ -80,6 +80,40 @@ object hiveObject {
     }while(userInput != "<")
   }
 
+  def problemScenarioFive(spark:SparkSession): Unit ={
+    var userInput:String=""
+    var propertyInput:String = ""
+    do{
+      Aesthetics.printHeader("Menu")
+      Aesthetics.printBorderVert("1) Add a comment to table properties")
+      Aesthetics.printBorderVert("2) Add a note to table properties")
+      Aesthetics.printHeader("< to go back>")
+      userInput = readLine(">Input<")
+      val test = userInputCheck(userInput)
+      if(test == 2) {
+        userInput.toInt match{
+          case 1 => {
+            Aesthetics.printHeader("What is your comment")
+            propertyInput = readLine(">Input<")
+            spark.sql(s"ALTER TABLE bev_brancha SET TBLPROPERTIES(\'comments\' = \'$propertyInput\')")
+            spark.sql(raw"SHOW TBLPROPERTIES bev_brancha").show()
+          }
+          case 2 => {
+            Aesthetics.printHeader("What is your note")
+            propertyInput = readLine(">Input<")
+            spark.sql(s"ALTER TABLE bev_brancha SET TBLPROPERTIES(\'note\' = \'$propertyInput\')")
+            spark.sql(raw"SHOW TBLPROPERTIES bev_brancha").show()
+          }
+          case _ => "c"
+        }
+      }
+    }while(userInput != "<")
+  }
+
+  def problemScenarioSix(spark:SparkSession){
+    spark.sql(raw"SELECT conscount.a as amount FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1'").show
+  }
+
   def main(args: Array[String]): Unit = {
     // create a spark session
     // for Windows
@@ -113,8 +147,8 @@ object hiveObject {
           case 2 => problemScenarioTwo(spark)
           case 3 => problemScenarioThree(spark)
           case 4 => "a"
-          case 5 => "a"
-          case 6 => "a"
+          case 5 => problemScenarioFive(spark)
+          case 6 => problemScenarioSix(spark)
           case 7 => "a"
           case _ => "other"
         }
