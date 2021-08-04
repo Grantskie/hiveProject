@@ -68,6 +68,18 @@ object hiveObject {
     }while(userInput != "<")
   }
 
+  def problemScenarioThree(spark:SparkSession){
+    var userInput:String = ""
+    do{
+      Aesthetics.printHeader("Beverages available on Branch10, Branch8, and Branch1")
+      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM bev_brancha UNION SELECT * FROM bev_branchb UNION SELECT * FROM bev_branchd) AS x1 WHERE branch='Branch8' OR branch='Branch10' OR branch='Branch1' ORDER BY branch, type").show()
+      Aesthetics.printHeader("Common beverages available in Branch4,Branch7")
+      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM (SELECT * FROM bev_branchb where branch = 'branch7' UNION SELECT * FROM bev_branchc where branch = 'Branch7') as x1 INNER JOIN (SELECT * FROM bev_branchc where branch='Branch4') as x2 ON x1.type = x2.type) as x3").show()
+      Aesthetics.printHeader("< to go back>")
+      userInput = readLine(">Input<")
+    }while(userInput != "<")
+  }
+
   def main(args: Array[String]): Unit = {
     // create a spark session
     // for Windows
@@ -99,7 +111,7 @@ object hiveObject {
         userInput.toInt match {
           case 1 => problemScenarioOne(spark)
           case 2 => problemScenarioTwo(spark)
-          case 3 => "two"
+          case 3 => problemScenarioThree(spark)
           case 4 => "a"
           case 5 => "a"
           case 6 => "a"
