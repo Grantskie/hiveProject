@@ -1,0 +1,17 @@
+Special_Lite,Branch10
+MED_LATTE,Branch10
+Triple_cappuccino,Branch10
+ICY_LATTE,Branch10
+SMALL_Espresso,Branch10
+Double_cappuccino,Branch10
+LARGE_Espresso,Branch10
+Mild_Espresso,Branch10
+Cold_cappuccino,Branch10
+Special_Coffee,Branch10
+MED_Coffee,Branch10
+Triple_LATTE,Branch10
+ICY_Coffee,Branch10
+SMALL_Lite,Branch10
+Double_Espresso,Branch10
+LARGE_Lite,Branch10
+Mild_Lite,Branch10
