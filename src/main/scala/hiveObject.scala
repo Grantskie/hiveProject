@@ -19,6 +19,21 @@ object hiveObject {
     spark.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountB.txt' INTO TABLE bev_conscountb")
     spark.sql("CREATE TABLE IF NOT EXISTS bev_conscountc(type STRING, amount INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
     spark.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountC.txt' INTO TABLE bev_conscountc")
+    println("Generating partitioned and bucketed tables")
+    spark.sql("CREATE TABLE IF NOT EXISTS bev_branchaPB(type STRING) PARTITIONED BY (branch STRING) CLUSTERED BY (type) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
+    spark.sql("INSERT OVERWRITE TABLE bev_branchaPB PARTITION (branch) SELECT * FROM bev_brancha")
+    spark.sql("CREATE TABLE IF NOT EXISTS bev_branchbPB(type STRING) PARTITIONED BY (branch STRING) CLUSTERED BY (type) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
+    spark.sql("INSERT OVERWRITE TABLE bev_branchbPB PARTITION (branch) SELECT * FROM bev_branchb")
+    spark.sql("CREATE TABLE IF NOT EXISTS bev_branchcPB(type STRING) PARTITIONED BY (branch STRING) CLUSTERED BY (type) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
+    spark.sql("INSERT OVERWRITE TABLE bev_branchcPB PARTITION (branch) SELECT * FROM bev_branchc")
+    spark.sql("CREATE TABLE IF NOT EXISTS bev_branchdPB(type STRING) PARTITIONED BY (branch STRING) CLUSTERED BY (type) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
+    spark.sql("INSERT OVERWRITE TABLE bev_branchdPB PARTITION (branch) SELECT * FROM bev_branchd")
+    spark.sql("CREATE TABLE IF NOT EXISTS bev_conscountaPB(amount INT) PARTITIONED BY (type STRING) CLUSTERED BY (amount) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
+    spark.sql("INSERT OVERWRITE TABLE bev_conscountaPB PARTITION (type) SELECT amount, type FROM bev_conscounta")
+    spark.sql("CREATE TABLE IF NOT EXISTS bev_conscountbPB(amount INT) PARTITIONED BY (type STRING) CLUSTERED BY (amount) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
+    spark.sql("INSERT OVERWRITE TABLE bev_conscountbPB PARTITION (type) SELECT amount, type FROM bev_conscountb")
+    spark.sql("CREATE TABLE IF NOT EXISTS bev_conscountcPB(amount INT) PARTITIONED BY (type STRING) CLUSTERED BY (amount) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
+    spark.sql("INSERT OVERWRITE TABLE bev_conscountcPB PARTITION (type) SELECT amount, type FROM bev_conscountc")
   }
 
   def dropTables(spark:SparkSession){
@@ -29,6 +44,14 @@ object hiveObject {
     spark.sql("DROP TABLE bev_conscounta")
     spark.sql("DROP TABLE bev_conscountb")
     spark.sql("DROP TABLE bev_conscountc")
+
+    spark.sql("DROP TABLE bev_branchapb")
+    spark.sql("DROP TABLE bev_branchbpb")
+    spark.sql("DROP TABLE bev_branchcpb")
+    spark.sql("DROP TABLE bev_branchdpb")
+    spark.sql("DROP TABLE bev_conscountapb")
+    spark.sql("DROP TABLE bev_conscountbpb")
+    spark.sql("DROP TABLE bev_conscountcpb")
   }
 
   def userInputCheck(input:String): Int ={
@@ -48,9 +71,9 @@ object hiveObject {
     var userInput : String = ""
     do{
       Aesthetics.printHeader("Total # of consumers in branch1")
-      spark.sql("SELECT SUM(conscount.a) FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = \'Branch1\'").show
+      spark.sql("SELECT SUM(conscount.a) FROM bev_branchapb INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount  ON bev_branchapb.type = conscount.t WHERE branch = \'Branch1\'").show
       Aesthetics.printHeader("Total # of consumers in branch2")
-      spark.sql(raw"SELECT SUM(conscount.a) FROM (SELECT * FROM bev_brancha UNION ALL SELECT * FROM bev_branchc) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2'").show
+      spark.sql(raw"SELECT SUM(conscount.a) FROM (SELECT * FROM bev_branchapb UNION ALL SELECT * FROM bev_branchcpb) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2'").show
       Aesthetics.printHeader("< to go back")
       userInput = readLine(">Input<")
     }while(userInput != "<")
@@ -60,9 +83,9 @@ object hiveObject {
     var userInput:String = ""
     do{
       Aesthetics.printHeader("Most consumed beverage on Branch1")
-      spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1' GROUP BY conscount.t ORDER BY MaxTotal desc LIMIT 1").show
+      spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM bev_branchapb INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount  ON bev_branchapb.type = conscount.t WHERE branch = 'Branch1' GROUP BY conscount.t ORDER BY MaxTotal desc LIMIT 1").show
       Aesthetics.printHeader("Least consumed beverage on Branch2")
-      spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM (SELECT * FROM bev_brancha UNION ALL SELECT * FROM bev_branchc) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2' GROUP BY conscount.t ORDER BY MaxTotal asc LIMIT 1").show
+      spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM (SELECT * FROM bev_branchapb UNION ALL SELECT * FROM bev_branchcpb) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2' GROUP BY conscount.t ORDER BY MaxTotal asc LIMIT 1").show
       Aesthetics.printHeader("< to go back")
       userInput = readLine(">Input<")
     }while(userInput != "<")
@@ -72,9 +95,9 @@ object hiveObject {
     var userInput:String = ""
     do{
       Aesthetics.printHeader("Beverages available on Branch10, Branch8, and Branch1")
-      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM bev_brancha UNION SELECT * FROM bev_branchb UNION SELECT * FROM bev_branchd) AS x1 WHERE branch='Branch8' OR branch='Branch10' OR branch='Branch1' ORDER BY branch, type").show()
+      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM bev_branchapb UNION SELECT * FROM bev_branchbpb UNION SELECT * FROM bev_branchdpb) AS x1 WHERE branch='Branch8' OR branch='Branch10' OR branch='Branch1' ORDER BY branch, type").show()
       Aesthetics.printHeader("Common beverages available in Branch4,Branch7")
-      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM (SELECT * FROM bev_branchb where branch = 'branch7' UNION SELECT * FROM bev_branchc where branch = 'Branch7') as x1 INNER JOIN (SELECT * FROM bev_branchc where branch='Branch4') as x2 ON x1.type = x2.type) as x3").show()
+      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM (SELECT * FROM bev_branchbpb where branch = 'branch7' UNION SELECT * FROM bev_branchcpb where branch = 'Branch7') as x1 INNER JOIN (SELECT * FROM bev_branchcpb where branch='Branch4') as x2 ON x1.type = x2.type) as x3").show()
       Aesthetics.printHeader("< to go back>")
       userInput = readLine(">Input<")
     }while(userInput != "<")
@@ -111,7 +134,17 @@ object hiveObject {
   }
 
   def problemScenarioSix(spark:SparkSession){
-    spark.sql(raw"SELECT conscount.a as amount FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1'").show
+    var userInput = 0
+    spark.sql(raw"DROP TABLE IF EXISTS problemsix")
+    spark.sql(raw"CREATE TABLE IF NOT EXISTS problemsix (amount INT) PARTITIONED BY (row_num INT)")
+    spark.sql(raw"INSERT OVERWRITE TABLE problemsix PARTITION (row_num) SELECT conscount.a as amount, ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) as row_num FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT * FROM bev_conscountb UNION ALL SELECT * FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1' LIMIT 20")
+    spark.sql(raw"SELECT * FROM problemsix ORDER BY row_num").show()
+    Aesthetics.printHeader("Delete row number")
+    println(">Input<")
+    userInput = readInt()
+    spark.sql(s"ALTER TABLE problemsix DROP IF EXISTS PARTITION (row_num=$userInput)")
+    spark.sql(raw"SELECT * FROM problemsix order by row_num").show()
+    readLine("Press anything to back")
   }
 
   def main(args: Array[String]): Unit = {
@@ -126,6 +159,10 @@ object hiveObject {
       .enableHiveSupport()
       .getOrCreate()
     spark.sparkContext.setLogLevel("WARN")
+    spark.sql("SET hive.exec.dynamic.partition=true")
+    spark.sql("SET hive.exec.dynamic.partition.mode=nonstrict")
+    spark.sql("SET hive.enforce.bucketing=false")
+    spark.sql("SET hive.enforce.sorting=false")
     println("created spark session")
     println("Generating tables")
     //generateTables(spark)
