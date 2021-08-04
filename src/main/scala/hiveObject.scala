@@ -34,6 +34,7 @@ object hiveObject {
     spark.sql("INSERT OVERWRITE TABLE bev_conscountbPB PARTITION (type) SELECT amount, type FROM bev_conscountb")
     spark.sql("CREATE TABLE IF NOT EXISTS bev_conscountcPB(amount INT) PARTITIONED BY (type STRING) CLUSTERED BY (amount) INTO 20 BUCKETS ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
     spark.sql("INSERT OVERWRITE TABLE bev_conscountcPB PARTITION (type) SELECT amount, type FROM bev_conscountc")
+    spark.sql("CREATE TABLE IF NOT EXISTS timeTest (id INT, normal INT, partitioned INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY \',\' STORED AS TEXTFILE")
   }
 
   def dropTables(spark:SparkSession){
@@ -52,6 +53,8 @@ object hiveObject {
     spark.sql("DROP TABLE bev_conscountapb")
     spark.sql("DROP TABLE bev_conscountbpb")
     spark.sql("DROP TABLE bev_conscountcpb")
+
+    spark.sql("DROP TABLE timetest")
   }
 
   def userInputCheck(input:String): Int ={
@@ -95,10 +98,27 @@ object hiveObject {
     var userInput:String = ""
     do{
       Aesthetics.printHeader("Beverages available on Branch10, Branch8, and Branch1")
-      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM bev_branchapb UNION SELECT * FROM bev_branchbpb UNION SELECT * FROM bev_branchdpb) AS x1 WHERE branch='Branch8' OR branch='Branch10' OR branch='Branch1' ORDER BY branch, type").show()
+      spark.sql(raw"SELECT DISTINCT type FROM (SELECT * FROM bev_branchapb UNION SELECT * FROM bev_branchbpb UNION SELECT * FROM bev_branchdpb) AS x1 WHERE branch='Branch8' OR branch='Branch10' OR branch='Branch1' ORDER BY type").show()
       Aesthetics.printHeader("Common beverages available in Branch4,Branch7")
-      spark.sql(raw"SELECT DISTINCT * FROM (SELECT * FROM (SELECT * FROM bev_branchbpb where branch = 'branch7' UNION SELECT * FROM bev_branchcpb where branch = 'Branch7') as x1 INNER JOIN (SELECT * FROM bev_branchcpb where branch='Branch4') as x2 ON x1.type = x2.type) as x3").show()
-      Aesthetics.printHeader("< to go back>")
+      spark.sql(raw"SELECT DISTINCT x3.type, x3.branch, x3.branch2 FROM (SELECT * FROM (SELECT * FROM bev_branchbpb where branch = 'branch7' UNION SELECT * FROM bev_branchcpb where branch = 'Branch7') as x1 INNER JOIN (SELECT type as type2, branch as branch2 FROM bev_branchcpb where branch='Branch4') as x2 ON x1.type = x2.type2) as x3").show()
+      Aesthetics.printHeader("< to go back")
+      userInput = readLine(">Input<")
+    }while(userInput != "<")
+  }
+
+  def problemScenarioFour(spark:SparkSession){
+    var userInput:String=""
+    do{
+      Aesthetics.printHeader("Partition of common beverages in branches 4 & 7")
+      spark.sql(raw"DROP TABLE IF EXISTS problemFour")
+      spark.sql(raw"CREATE TABLE problemFour (branch1 STRING, branch2 STRING) PARTITIONED BY (type STRING)")
+      spark.sql(raw"INSERT OVERWRITE TABLE problemFour PARTITION (type) SELECT DISTINCT x3.branch, x3.branch2, x3.type FROM (SELECT * FROM (SELECT * FROM bev_branchbpb where branch = 'branch7' UNION SELECT * FROM bev_branchcpb where branch = 'Branch7') as x1 INNER JOIN (SELECT type as type2, branch as branch2 FROM bev_branchcpb where branch='Branch4') as x2 ON x1.type = x2.type2) as x3")
+      spark.sql(raw"describe formatted problemfour").show
+      spark.sql("DROP VIEW IF EXISTS problemFourView")
+      spark.sql(raw"create view problemFourView as SELECT type, branch, branch2 FROM (SELECT DISTINCT x3.type, x3.branch, x3.branch2 FROM (SELECT * FROM (SELECT * FROM bev_branchbpb where branch = 'branch7' UNION SELECT * FROM bev_branchcpb where branch = 'Branch7') as x1 INNER JOIN (SELECT type as type2, branch as branch2 FROM bev_branchcpb where branch='Branch4') as x2 ON x1.type = x2.type2) as x3) as x4")
+      Aesthetics.printHeader("View of common beverages in branches 4 & 7")
+      spark.sql(raw"select * from problemFourView").show
+      Aesthetics.printHeader("< to go back")
       userInput = readLine(">Input<")
     }while(userInput != "<")
   }
@@ -147,6 +167,64 @@ object hiveObject {
     readLine("Press anything to back")
   }
 
+  def extraOne(spark:SparkSession): Unit = {
+    var userInput: String = ""
+    do {
+      Aesthetics.printHeader("Complete Optimization")
+      Aesthetics.printBorderVert("SET hive.cbo.enable = true")
+      Aesthetics.printBorderVert("SET hive.compute.query.using.stats = true")
+      Aesthetics.printBorderVert("SET hive.stats.fetch.column.stats = true")
+      Aesthetics.printBorderVert("SET hive.stats.fetch.partition.stats = true")
+      Aesthetics.printBorderHorz(1)
+      spark.sql(raw"describe formatted bev_branchapb").show
+      Aesthetics.printHeader("< to go back")
+      userInput = readLine(">Input<")
+    } while (userInput != "<")
+  }
+
+  def extraTwo(spark:SparkSession): Unit ={
+    var userInput = ""
+    var insertStatement = "INSERT INTO TABLE timeTest VALUES "
+    var maxId = 0
+    var id: Int = 0
+    var time1: Long = 0
+    var time2: Long = 0
+    if(spark.sql(raw"SELECT MAX(id) as max FROM timeTest").select("max").take(1)(0)(0) == null) maxId = 0
+    else maxId = spark.sql(raw"SELECT MAX(id) as max FROM timeTest").select("max").take(1)(0)(0).toString.toInt
+    do{
+      Aesthetics.printHeader("Menu")
+      Aesthetics.printBorderVert("1) Run test")
+      Aesthetics.printBorderVert("2) View test")
+      Aesthetics.printHeader("< to go back")
+      userInput = readLine(">input<")
+      val test = userInputCheck(userInput)
+      if(test == 2){
+        userInput.toInt match {
+          case 1 => {
+            for(i<-(maxId+1) to (maxId + 1000)){
+              id = i
+              time1 = System.currentTimeMillis()
+              spark.sql(raw"SELECT SUM(conscount.a) FROM bev_branchapb INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount  ON bev_branchapb.type = conscount.t WHERE branch = 'Branch1'")
+              time1 = System.currentTimeMillis() - time1
+              time2 = System.currentTimeMillis()
+              spark.sql(raw"SELECT SUM(conscount.a) FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT type, amount FROM bev_conscountb UNION ALL SELECT type, amount FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1'")
+              time2 = System.currentTimeMillis() - time2
+              //println(s"$id | $time1 | $time2")
+              insertStatement = insertStatement + s"($id,$time2,$time1),"
+            }
+            insertStatement = insertStatement.substring(0,insertStatement.length-1)
+            spark.sql(insertStatement)
+            spark.sql(raw"SELECT * FROM timeTest").show
+          }
+          case 2 => {
+            spark.sql("SELECT AVG(normal), AVG(partitioned), MAX(id) as Total FROM timetest").show
+          }
+          case _ => 'a'
+        }
+      }
+    }while(userInput != "<")
+  }
+
   def main(args: Array[String]): Unit = {
     // create a spark session
     // for Windows
@@ -163,6 +241,10 @@ object hiveObject {
     spark.sql("SET hive.exec.dynamic.partition.mode=nonstrict")
     spark.sql("SET hive.enforce.bucketing=false")
     spark.sql("SET hive.enforce.sorting=false")
+    spark.sql("SET hive.cbo.enable = true")
+    spark.sql("SET hive.compute.query.using.stats = true")
+    spark.sql("set hive.stats.fetch.column.stats = true")
+    spark.sql("set hive.stats.fetch.partition.stats = true")
     println("created spark session")
     println("Generating tables")
     //generateTables(spark)
@@ -173,7 +255,8 @@ object hiveObject {
       Aesthetics.printHeader("Menu")
       Aesthetics.printBorderVert(1)
       for(i<-1 to 6) Aesthetics.printBorderVert(s"$i) Problem Scenario $i")
-      Aesthetics.printBorderVert("7) Extras")
+      Aesthetics.printBorderVert("7) First Extra")
+      Aesthetics.printBorderVert("8) Second Extra")
       Aesthetics.printBorderVert(1)
       Aesthetics.printHeader("< to exit")
       userInput = readLine(">Input<")
@@ -183,21 +266,14 @@ object hiveObject {
           case 1 => problemScenarioOne(spark)
           case 2 => problemScenarioTwo(spark)
           case 3 => problemScenarioThree(spark)
-          case 4 => "a"
+          case 4 => problemScenarioFour(spark)
           case 5 => problemScenarioFive(spark)
           case 6 => problemScenarioSix(spark)
-          case 7 => "a"
+          case 7 => extraOne(spark)
+          case 8 => extraTwo(spark)
           case _ => "other"
         }
       }
     }while(userInput != "<")
-
-    //spark.sql("select * from bev_brancha").show()
-    //spark.sql("select * from bev_branchb").show()
-    //spark.sql("select * from bev_branchc").show()
-    //spark.sql("select * from bev_branchd").show()
-    //spark.sql("select * from bev_conscounta").show()
-    //spark.sql("select * from bev_conscountb").show()
-    //spark.sql("select * from bev_conscountc").show()
   }
 }
