@@ -89,6 +89,8 @@ object hiveObject {
       spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM bev_branchapb INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount  ON bev_branchapb.type = conscount.t WHERE branch = 'Branch1' GROUP BY conscount.t ORDER BY MaxTotal desc LIMIT 1").show
       Aesthetics.printHeader("Least consumed beverage on Branch2")
       spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM (SELECT * FROM bev_branchapb UNION ALL SELECT * FROM bev_branchcpb) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2' GROUP BY conscount.t ORDER BY MaxTotal asc LIMIT 1").show
+      Aesthetics.printHeader("Average consumed beverage on Branch2")
+      spark.sql(raw"SELECT t as MaxType, SUM(conscount.a) as MaxTotal FROM (SELECT * FROM bev_branchapb UNION ALL SELECT * FROM bev_branchcpb) AS bev_branch INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount ON bev_branch.type = conscount.t WHERE branch = 'Branch2' GROUP BY conscount.t ORDER BY MaxTotal desc LIMIT 1").show
       Aesthetics.printHeader("< to go back")
       userInput = readLine(">Input<")
     }while(userInput != "<")
