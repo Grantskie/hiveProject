@@ -1,10 +1,12 @@
 hiveProject
 
 Description
+
 	Make use of Hive, Spark, and Hadoop to solve the 6 given problem scenarios
 	as well as 2 additional scenarios with the given data
 
 Technologies Used
+
 	-IntelliJ
 	-Scala	2.11.12
 	-sbt	1.5.5
@@ -15,6 +17,7 @@ Technologies Used
 	-GitHub
 	
 Features
+
 	-Problem Scenario 1:
 		-> Queries the total number of consumers for Branch1
 		-> Queries the number of consumers for Branch2
@@ -40,4 +43,5 @@ Features
 		-> View the test between normal and optimized tables
 		
 Usage
+
 	Follow the command line interface to run each problem scenario along with each extra scenario
