@@ -7,5 +7,3 @@ target/*
 .vscode
 .metals/
 .bloop/*
-
-app.config
