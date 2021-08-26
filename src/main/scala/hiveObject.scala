@@ -203,13 +203,13 @@ object hiveObject {
       if(test == 2){
         userInput.toInt match {
           case 1 => {
-            for(i<-(maxId+1) to (maxId + 1000)){
+            for(i<-(maxId+1) to (maxId + 200)){
               id = i
               time1 = System.currentTimeMillis()
-              spark.sql(raw"SELECT SUM(conscount.a) FROM bev_branchapb INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount  ON bev_branchapb.type = conscount.t WHERE branch = 'Branch1'").show
+              spark.sql(raw"SELECT SUM(conscount.a) FROM bev_branchapb INNER JOIN (SELECT type as t, amount as a FROM bev_conscountapb UNION ALL SELECT type, amount FROM bev_conscountbpb UNION ALL SELECT type, amount FROM bev_conscountcpb) as conscount  ON bev_branchapb.type = conscount.t WHERE branch = 'Branch1'")
               time1 = System.currentTimeMillis() - time1
               time2 = System.currentTimeMillis()
-              spark.sql(raw"SELECT SUM(conscount.a) FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT type, amount FROM bev_conscountb UNION ALL SELECT type, amount FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1'").show
+              spark.sql(raw"SELECT SUM(conscount.a) FROM bev_brancha INNER JOIN (SELECT type as t, amount as a FROM bev_conscounta UNION ALL SELECT type, amount FROM bev_conscountb UNION ALL SELECT type, amount FROM bev_conscountc) as conscount  ON bev_brancha.type = conscount.t WHERE branch = 'Branch1'")
               time2 = System.currentTimeMillis() - time2
               //println(s"$id | $time1 | $time2")
               insertStatement = insertStatement + s"($id,$time2,$time1),"
